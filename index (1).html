@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>พยากรณ์อากาศ · OpenWeather</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#e9f1fb; --sky-bottom:#cfe0f4;
+    --ink:#12243c; --muted:#5b7089; --line:#d3ddea;
+    --card:#ffffff; --sun:#f0a020; --rain:#3b7fd4; --danger:#c0392b;
+    --shadow:0 10px 30px rgba(20,40,70,.10);
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *,*::before,*::after{box-sizing:inherit}
+  html,body{margin:0}
+  body{
+    font-family:"IBM Plex Sans Thai",system-ui,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(180deg,var(--sky-top),var(--sky-bottom)) fixed;
+    min-height:100vh;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:24px 18px 60px}
+
+  /* header */
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .brand{font-weight:700;font-size:1.25rem;letter-spacing:-.01em}
+  .brand small{display:block;font-weight:400;font-size:.75rem;color:var(--muted);letter-spacing:0}
+  .keybtn{background:none;border:1px solid var(--line);border-radius:999px;padding:6px 14px;
+    font-family:inherit;font-size:.8rem;color:var(--muted);cursor:pointer}
+  .keybtn:hover{border-color:var(--muted);color:var(--ink)}
+
+  /* search */
+  .search{display:flex;gap:8px;margin-bottom:20px}
+  .search input{flex:1;min-width:0;padding:12px 16px;border:1px solid var(--line);border-radius:12px;
+    font-family:inherit;font-size:1rem;background:var(--card);color:var(--ink)}
+  .search input:focus{outline:2px solid var(--rain);outline-offset:-1px;border-color:transparent}
+  .search button{border:none;border-radius:12px;padding:0 16px;background:var(--ink);color:#fff;
+    font-family:inherit;font-size:.95rem;font-weight:500;cursor:pointer;white-space:nowrap}
+  .search button:hover{background:#0a1728}
+  .geo{background:var(--card)!important;color:var(--rain)!important;border:1px solid var(--line)!important;
+    display:grid;place-items:center;padding:0 12px!important;font-size:1.1rem}
+
+  /* status */
+  .status{padding:14px 16px;border-radius:12px;background:var(--card);border:1px solid var(--line);
+    color:var(--muted);text-align:center;font-size:.95rem}
+  .status.err{color:var(--danger);border-color:#f0c9c4;background:#fdf3f2}
+
+  /* current */
+  .now{background:var(--card);border-radius:20px;padding:22px;box-shadow:var(--shadow);margin-bottom:16px}
+  .now .place{font-size:1.05rem;font-weight:600}
+  .now .when{font-size:.8rem;color:var(--muted);margin-bottom:8px}
+  .now .top{display:flex;align-items:center;gap:8px}
+  .now .temp{font-size:4rem;font-weight:700;line-height:1;letter-spacing:-.03em}
+  .now .temp span{font-size:1.5rem;color:var(--muted);font-weight:500}
+  .now img{width:96px;height:96px;margin-left:auto}
+  .now .desc{font-size:1.05rem;text-transform:capitalize;margin-top:2px}
+  .now .feels{font-size:.85rem;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:18px}
+  .cell{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .cell b{display:block;font-size:.72rem;color:var(--muted);font-weight:500}
+  .cell span{font-size:1.05rem;font-weight:600}
+
+  /* forecast */
+  h2{font-size:.9rem;color:var(--muted);font-weight:600;margin:24px 0 10px}
+  .days{display:flex;flex-direction:column;gap:8px}
+  .day{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:12px 16px}
+  .day .dname{width:88px;font-weight:600;font-size:.95rem}
+  .day img{width:44px;height:44px}
+  .day .dc{flex:1;font-size:.85rem;color:var(--muted);text-transform:capitalize}
+  .day .dt{font-variant-numeric:tabular-nums;font-weight:600}
+  .day .dt .lo{color:var(--muted);font-weight:400}
+
+  footer{margin-top:28px;text-align:center;font-size:.75rem;color:var(--muted)}
+  footer a{color:var(--rain)}
+  .hidden{display:none}
+
+  /* key dialog */
+  .modal{position:fixed;inset:0;background:rgba(18,36,60,.45);display:grid;place-items:center;padding:20px;z-index:10}
+  .modal .box{background:#fff;border-radius:18px;padding:24px;max-width:420px;width:100%;box-shadow:var(--shadow)}
+  .modal h3{margin:0 0 6px;font-size:1.1rem}
+  .modal p{margin:0 0 14px;font-size:.88rem;color:var(--muted)}
+  .modal input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;
+    font-family:inherit;font-size:.95rem;margin-bottom:12px}
+  .modal .row{display:flex;gap:8px}
+  .modal button{flex:1;border:none;border-radius:12px;padding:12px;font-family:inherit;
+    font-size:.95rem;font-weight:500;cursor:pointer}
+  .modal .save{background:var(--ink);color:#fff}
+  .modal .cancel{background:#eef2f7;color:var(--ink)}
+  .modal a{color:var(--rain)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">พยากรณ์อากาศ<small>ขับเคลื่อนด้วย OpenWeather</small></div>
+    <button class="keybtn" id="keyBtn">API Key</button>
+  </header>
+
+  <div class="search">
+    <input id="q" type="text" placeholder="ค้นหาเมือง เช่น หาดใหญ่, Bangkok, Tokyo" autocomplete="off">
+    <button class="geo" id="geoBtn" title="ใช้ตำแหน่งปัจจุบัน">◎</button>
+    <button id="goBtn">ค้นหา</button>
+  </div>
+
+  <div id="status" class="status">พิมพ์ชื่อเมืองแล้วกดค้นหา เพื่อดูสภาพอากาศ</div>
+
+  <section id="now" class="now hidden"></section>
+  <div id="fcWrap" class="hidden">
+    <h2>พยากรณ์ 5 วันข้างหน้า</h2>
+    <div id="days" class="days"></div>
+  </div>
+
+  <footer>ข้อมูลจาก OpenWeather · อัปเดตทุก ~3 ชั่วโมง · <a href="https://openweathermap.org/api" target="_blank" rel="noopener">เอกสาร API</a></footer>
+</div>
+
+<!-- key dialog -->
+<div id="modal" class="modal hidden">
+  <div class="box">
+    <h3>ใส่ OpenWeather API Key</h3>
+    <p>คีย์จะถูกเก็บไว้ในเบราว์เซอร์ของคุณเท่านั้น (localStorage) ไม่ได้ส่งไปที่อื่น ขอคีย์ฟรีได้ที่
+      <a href="https://home.openweathermap.org/api_keys" target="_blank" rel="noopener">home.openweathermap.org</a></p>
+    <input id="keyInput" type="text" placeholder="วางคีย์ที่นี่" spellcheck="false">
+    <div class="row">
+      <button class="cancel" id="keyCancel">ยกเลิก</button>
+      <button class="save" id="keySave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE="https://api.openweathermap.org";
+const els={
+  q:document.getElementById("q"), go:document.getElementById("goBtn"), geo:document.getElementById("geoBtn"),
+  status:document.getElementById("status"), now:document.getElementById("now"),
+  fcWrap:document.getElementById("fcWrap"), days:document.getElementById("days"),
+  modal:document.getElementById("modal"), keyInput:document.getElementById("keyInput"),
+  keyBtn:document.getElementById("keyBtn"), keySave:document.getElementById("keySave"), keyCancel:document.getElementById("keyCancel"),
+};
+const getKey=()=>{try{return localStorage.getItem("owm_api_key")||"";}catch(e){return "";}};
+const setKey=k=>{try{localStorage.setItem("owm_api_key",k);}catch(e){}};
+const lastCity=()=>{try{return localStorage.getItem("owm_last_city")||"";}catch(e){return "";}};
+const saveCity=c=>{try{localStorage.setItem("owm_last_city",c);}catch(e){}};
+
+function showStatus(msg,isErr){
+  els.status.textContent=msg;
+  els.status.className="status"+(isErr?" err":"");
+  els.status.classList.remove("hidden");
+  els.now.classList.add("hidden"); els.fcWrap.classList.add("hidden");
+}
+function openModal(){els.keyInput.value=getKey();els.modal.classList.remove("hidden");els.keyInput.focus();}
+function closeModal(){els.modal.classList.add("hidden");}
+
+async function api(path){
+  const key=getKey();
+  if(!key){openModal();throw new Error("no-key");}
+  const url=`${BASE}${path}${path.includes("?")?"&":"?"}appid=${key}`;
+  const res=await fetch(url);
+  if(res.status===401) throw new Error("คีย์ยังไม่ถูกต้องหรือยังไม่ active (คีย์ใหม่รอได้ถึง 2 ชม.)");
+  if(res.status===404) throw new Error("ไม่พบข้อมูล");
+  if(res.status===429) throw new Error("เรียกถี่เกินไป (เกิน 60 ครั้ง/นาที) รอสักครู่");
+  if(!res.ok) throw new Error("เรียก API ไม่สำเร็จ (HTTP "+res.status+")");
+  return res.json();
+}
+
+async function loadByCity(city){
+  if(!city.trim()) return;
+  showStatus("กำลังค้นหา “"+city+"” ...");
+  try{
+    const geo=await api(`/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1`);
+    if(!geo.length) return showStatus("ไม่พบเมือง “"+city+"” ลองพิมพ์เป็นภาษาอังกฤษ",true);
+    saveCity(city);
+    await render(geo[0].lat,geo[0].lon);
+  }catch(e){ if(e.message!=="no-key") showStatus(e.message,true); }
+}
+
+async function loadByCoords(lat,lon){
+  showStatus("กำลังโหลดสภาพอากาศ ...");
+  try{ await render(lat,lon); }
+  catch(e){ if(e.message!=="no-key") showStatus(e.message,true); }
+}
+
+async function render(lat,lon){
+  const [cur,fc]=await Promise.all([
+    api(`/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=th`),
+    api(`/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=th`)
+  ]);
+  renderNow(cur); renderForecast(fc);
+  els.status.classList.add("hidden");
+}
+
+function icon(code,alt){return `https://openweathermap.org/img/wn/${code}@2x.png`;}
+
+function renderNow(d){
+  const t=Math.round(d.main.temp), feels=Math.round(d.main.feels_like);
+  const w=d.weather[0], place=`${d.name}${d.sys&&d.sys.country?", "+d.sys.country:""}`;
+  const now=new Date().toLocaleString("th-TH",{weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
+  els.now.innerHTML=`
+    <div class="place">${place}</div>
+    <div class="when">${now} น.</div>
+    <div class="top">
+      <div>
+        <div class="temp">${t}<span>°C</span></div>
+        <div class="desc">${w.description}</div>
+        <div class="feels">รู้สึกเหมือน ${feels}°C</div>
+      </div>
+      <img src="${icon(w.icon)}" alt="${w.description}">
+    </div>
+    <div class="grid">
+      <div class="cell"><b>ความชื้น</b><span>${d.main.humidity}%</span></div>
+      <div class="cell"><b>ลม</b><span>${d.wind.speed.toFixed(1)} m/s</span></div>
+      <div class="cell"><b>ความกดอากาศ</b><span>${d.main.pressure} hPa</span></div>
+      <div class="cell"><b>ทัศนวิสัย</b><span>${d.visibility?(d.visibility/1000).toFixed(1)+" km":"-"}</span></div>
+      <div class="cell"><b>เมฆปกคลุม</b><span>${d.clouds?d.clouds.all+"%":"-"}</span></div>
+      <div class="cell"><b>สูงสุด / ต่ำสุด</b><span>${Math.round(d.main.temp_max)}° / ${Math.round(d.main.temp_min)}°</span></div>
+    </div>`;
+  els.now.classList.remove("hidden");
+}
+
+function renderForecast(fc){
+  const byDay={};
+  fc.list.forEach(it=>{
+    const day=it.dt_txt.slice(0,10);
+    (byDay[day]=byDay[day]||[]).push(it);
+  });
+  const today=new Date().toISOString().slice(0,10);
+  const rows=Object.keys(byDay).filter(d=>d>today).slice(0,5).map(day=>{
+    const items=byDay[day];
+    let min=Infinity,max=-Infinity;
+    items.forEach(i=>{min=Math.min(min,i.main.temp_min);max=Math.max(max,i.main.temp_max);});
+    // ตัวแทนสภาพอากาศ: เลือกช่วงเที่ยงถ้ามี ไม่งั้นใช้กลางลิสต์
+    const noon=items.find(i=>i.dt_txt.slice(11,13)==="12")||items[Math.floor(items.length/2)];
+    const w=noon.weather[0];
+    const name=new Date(day+"T00:00:00").toLocaleDateString("th-TH",{weekday:"short",day:"numeric",month:"short"});
+    return `<div class="day">
+      <div class="dname">${name}</div>
+      <img src="${icon(w.icon)}" alt="${w.description}">
+      <div class="dc">${w.description}</div>
+      <div class="dt">${Math.round(max)}° <span class="lo">/ ${Math.round(min)}°</span></div>
+    </div>`;
+  }).join("");
+  els.days.innerHTML=rows;
+  els.fcWrap.classList.remove("hidden");
+}
+
+// events
+els.go.addEventListener("click",()=>loadByCity(els.q.value));
+els.q.addEventListener("keydown",e=>{if(e.key==="Enter")loadByCity(els.q.value);});
+els.keyBtn.addEventListener("click",openModal);
+els.keyCancel.addEventListener("click",closeModal);
+els.keySave.addEventListener("click",()=>{
+  const k=els.keyInput.value.trim();
+  if(!k) return;
+  setKey(k); closeModal();
+  loadByCity(els.q.value||lastCity()||"หาดใหญ่");
+});
+els.geo.addEventListener("click",()=>{
+  if(!navigator.geolocation) return showStatus("เบราว์เซอร์ไม่รองรับการหาตำแหน่ง",true);
+  showStatus("กำลังขอตำแหน่ง ...");
+  navigator.geolocation.getCurrentPosition(
+    p=>loadByCoords(p.coords.latitude,p.coords.longitude),
+    ()=>showStatus("ไม่สามารถเข้าถึงตำแหน่งได้ ลองพิมพ์ชื่อเมืองแทน",true)
+  );
+});
+
+// init
+(function(){
+  const c=lastCity()||"หาดใหญ่";
+  els.q.value=c;
+  if(!getKey()) openModal(); else loadByCity(c);
+})();
+</script>
+</body>
+</html>
