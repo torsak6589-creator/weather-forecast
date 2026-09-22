@@ -87,6 +87,14 @@
   .sec{display:flex;align-items:baseline;justify-content:space-between;margin:22px 2px 10px}
   .sec h2{font-size:.95rem;color:var(--navy);font-weight:700;margin:0}
   .sec .note{font-family:"DM Mono",monospace;font-size:.64rem;color:var(--muted);letter-spacing:.03em}
+  .taphint{display:flex;align-items:center;gap:11px;background:linear-gradient(90deg,#fdf6e6,#faefd4);
+    border:1px dashed var(--gold);border-radius:11px;padding:11px 15px;margin:0 0 12px;
+    color:var(--navy);font-size:.9rem;font-weight:600;box-shadow:0 2px 8px rgba(200,152,42,.12)}
+  .taphint b{font-weight:800;color:#a9791a}
+  .taphint .tapic{flex:none;font-size:1.3rem;line-height:1;animation:tapbob 1.4s ease-in-out infinite}
+  .taphint .go{margin-left:auto;flex:none;color:var(--gold);font-weight:800;font-size:1.1rem}
+  @keyframes tapbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  @media(prefers-reduced-motion:reduce){.taphint .tapic{animation:none}}
   .days{display:flex;flex-direction:column;gap:8px}
   .day{background:var(--card);border-radius:12px;border:1px solid var(--line);overflow:hidden}
   .day .row{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
@@ -160,7 +168,11 @@
   <div id="fcWrap" class="hidden">
     <div class="sec">
       <h2>พยากรณ์ 5 วันข้างหน้า</h2>
-      <span class="note">แตะแต่ละวันเพื่อดูกราฟฝน–อุณหภูมิรายชั่วโมง</span>
+    </div>
+    <div class="taphint">
+      <span class="tapic">👆</span>
+      <span>แตะที่การ์ดแต่ละวัน เพื่อกาง<b>กราฟฝน–อุณหภูมิรายชั่วโมง</b> และดูช่วงเวลาที่ฝนจะตก</span>
+      <span class="go">›</span>
     </div>
     <div id="days" class="days"></div>
   </div>
