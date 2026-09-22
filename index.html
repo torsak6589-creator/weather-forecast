@@ -3,121 +3,232 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>พยากรณ์อากาศ · OpenWeather</title>
+<title>พยากรณ์อากาศ · INTERNAL FORECAST · KST–HATYAI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --sky-top:#e9f1fb; --sky-bottom:#cfe0f4;
-    --ink:#12243c; --muted:#5b7089; --line:#d3ddea;
-    --card:#ffffff; --sun:#f0a020; --rain:#3b7fd4; --danger:#c0392b;
-    --shadow:0 10px 30px rgba(20,40,70,.10);
+    --navy:#0D1B2E; --navy-2:#14263f; --navy-3:#1d3350;
+    --gold:#C8982A; --gold-soft:#e0b955;
+    --bg:#f1f4f8; --card:#ffffff; --ink:#0D1B2E; --muted:#64748b; --line:#dde3ec;
+    --rain:#2f6fb0; --rain-soft:#eaf2fa;
+    --warn:#c77a12; --warn-bg:#fdf3e3;
+    --danger:#b3261e; --danger-bg:#fbeceb;
+    --ok:#2e7d5b;
+    --shadow:0 8px 24px rgba(13,27,46,.10);
     box-sizing:border-box;
-    padding-top:env(safe-area-inset-top,0px);
-    padding-bottom:env(safe-area-inset-bottom,0px);
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   }
   *,*::before,*::after{box-sizing:inherit}
   html,body{margin:0}
-  body{
-    font-family:"IBM Plex Sans Thai",system-ui,sans-serif;
-    color:var(--ink);
-    background:linear-gradient(180deg,var(--sky-top),var(--sky-bottom)) fixed;
-    min-height:100vh;
-    line-height:1.5;
-    -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:680px;margin:0 auto;padding:24px 18px 60px}
+  body{font-family:"Noto Sans Thai",system-ui,sans-serif;color:var(--ink);background:var(--bg);
+    min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .mono{font-family:"DM Mono",ui-monospace,monospace}
+  .tnum{font-variant-numeric:tabular-nums}
 
-  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px}
-  .brand{font-weight:700;font-size:1.25rem;letter-spacing:-.01em}
-  .brand small{display:block;font-weight:400;font-size:.75rem;color:var(--muted);letter-spacing:0}
-  .keybtn{background:none;border:1px solid var(--line);border-radius:999px;padding:6px 14px;
-    font-family:inherit;font-size:.8rem;color:var(--muted);cursor:pointer}
-  .keybtn:hover{border-color:var(--muted);color:var(--ink)}
+  /* ===== header ===== */
+  .masthead{background:var(--navy);color:#fff;border-bottom:3px solid var(--gold)}
+  .masthead .inner{max-width:860px;margin:0 auto;padding:18px 20px 16px;
+    display:flex;align-items:center;gap:16px}
+  .emblem{flex:none;width:52px;height:52px}
+  .titles{flex:1;min-width:0}
+  .titles h1{margin:0;font-size:1.5rem;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+  .titles .sub{font-family:"DM Mono",monospace;font-size:.72rem;letter-spacing:.14em;
+    color:var(--gold-soft);margin-top:3px}
+  .byline{font-family:"DM Mono",monospace;font-size:.7rem;letter-spacing:.16em;
+    color:rgba(255,255,255,.6);margin-top:1px}
+  .keybtn{flex:none;align-self:flex-start;background:transparent;border:1px solid rgba(255,255,255,.28);
+    border-radius:8px;padding:6px 12px;font-family:"DM Mono",monospace;font-size:.7rem;letter-spacing:.06em;
+    color:rgba(255,255,255,.85);cursor:pointer}
+  .keybtn:hover{border-color:var(--gold);color:var(--gold-soft)}
+  .telemetry{background:var(--navy-2);color:rgba(255,255,255,.72)}
+  .telemetry .inner{max-width:860px;margin:0 auto;padding:8px 20px;
+    font-family:"DM Mono",monospace;font-size:.68rem;letter-spacing:.05em;
+    display:flex;flex-wrap:wrap;gap:6px 18px}
+  .telemetry b{color:var(--gold-soft);font-weight:500}
 
-  .search{display:flex;gap:8px;margin-bottom:20px}
-  .search input{flex:1;min-width:0;padding:12px 16px;border:1px solid var(--line);border-radius:12px;
+  .wrap{max-width:860px;margin:0 auto;padding:22px 20px 60px}
+
+  /* ===== search ===== */
+  .search{display:flex;gap:8px;margin-bottom:18px}
+  .search input{flex:1;min-width:0;padding:12px 15px;border:1px solid var(--line);border-radius:10px;
     font-family:inherit;font-size:1rem;background:var(--card);color:var(--ink)}
-  .search input:focus{outline:2px solid var(--rain);outline-offset:-1px;border-color:transparent}
-  .search button{border:none;border-radius:12px;padding:0 16px;background:var(--ink);color:#fff;
-    font-family:inherit;font-size:.95rem;font-weight:500;cursor:pointer;white-space:nowrap}
-  .search button:hover{background:#0a1728}
-  .geo{background:var(--card)!important;color:var(--rain)!important;border:1px solid var(--line)!important;
-    display:grid;place-items:center;padding:0 12px!important;font-size:1.1rem}
+  .search input:focus{outline:2px solid var(--navy);outline-offset:-1px;border-color:transparent}
+  .search button{border:none;border-radius:10px;padding:0 18px;background:var(--navy);color:#fff;
+    font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;white-space:nowrap}
+  .search button:hover{background:var(--navy-3)}
+  .geo{background:var(--card)!important;color:var(--navy)!important;border:1px solid var(--line)!important;
+    display:grid;place-items:center;padding:0 13px!important;font-size:1.1rem}
 
-  .status{padding:14px 16px;border-radius:12px;background:var(--card);border:1px solid var(--line);
+  .status{padding:14px 16px;border-radius:10px;background:var(--card);border:1px solid var(--line);
     color:var(--muted);text-align:center;font-size:.95rem}
-  .status.err{color:var(--danger);border-color:#f0c9c4;background:#fdf3f2}
+  .status.err{color:var(--danger);border-color:#f0c9c4;background:var(--danger-bg)}
 
-  .now{background:var(--card);border-radius:20px;padding:22px;box-shadow:var(--shadow);margin-bottom:16px}
-  .now .place{font-size:1.05rem;font-weight:600}
-  .now .when{font-size:.8rem;color:var(--muted);margin-bottom:8px}
-  .now .top{display:flex;align-items:center;gap:8px}
-  .now .temp{font-size:4rem;font-weight:700;line-height:1;letter-spacing:-.03em}
-  .now .temp span{font-size:1.5rem;color:var(--muted);font-weight:500}
-  .now img{width:96px;height:96px;margin-left:auto}
-  .now .desc{font-size:1.05rem;text-transform:capitalize;margin-top:2px}
+  /* ===== flood / rain warning ===== */
+  .alert{border-radius:12px;padding:16px 18px;margin-bottom:16px;display:flex;gap:14px;align-items:flex-start}
+  .alert.flood{background:var(--danger-bg);border:1px solid #eab8b4}
+  .alert.caution{background:var(--warn-bg);border:1px solid #edd3a3}
+  .alert .ic{font-size:1.6rem;line-height:1}
+  .alert h3{margin:0 0 4px;font-size:1.02rem}
+  .alert.flood h3{color:var(--danger)}
+  .alert.caution h3{color:var(--warn)}
+  .alert p{margin:0;font-size:.9rem;color:#42505f}
+  .alert ul{margin:8px 0 0;padding-left:18px;font-size:.9rem;color:#42505f}
+  .alert li{margin:2px 0}
+
+  /* ===== current ===== */
+  .now{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
+  .now .head{padding:20px 22px 6px}
+  .now .place{font-size:1.1rem;font-weight:700}
+  .now .when{font-family:"DM Mono",monospace;font-size:.72rem;color:var(--muted);letter-spacing:.03em;margin-top:2px}
+  .now .top{display:flex;align-items:center;gap:10px;padding:4px 22px 14px}
+  .now .temp{font-size:4rem;font-weight:800;line-height:.95;letter-spacing:-.03em}
+  .now .temp span{font-size:1.4rem;color:var(--muted);font-weight:600}
+  .now .cond{flex:1}
+  .now .desc{font-size:1.05rem;font-weight:600;text-transform:capitalize}
   .now .feels{font-size:.85rem;color:var(--muted)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:18px}
-  .cell{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-  .cell b{display:block;font-size:.72rem;color:var(--muted);font-weight:500}
-  .cell span{font-size:1.05rem;font-weight:600}
+  .now img.wx{width:88px;height:88px;flex:none}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:1px;background:var(--line);
+    border-top:1px solid var(--line)}
+  .cell{background:var(--card);padding:11px 14px}
+  .cell b{display:block;font-size:.68rem;color:var(--muted);font-weight:600;letter-spacing:.02em}
+  .cell span{font-size:1.05rem;font-weight:700}
+  .rainbar{background:var(--rain-soft);border-top:1px solid #d5e4f2;padding:12px 22px;
+    display:flex;align-items:center;gap:14px}
+  .rainbar .big{font-size:1.4rem;font-weight:800;color:var(--rain)}
+  .rainbar .lbl{font-size:.78rem;color:#3d5a76;font-weight:600}
+  .rainbar .txt{font-size:.85rem;color:#3d5a76}
 
-  h2{font-size:.9rem;color:var(--muted);font-weight:600;margin:24px 0 10px}
+  /* ===== forecast ===== */
+  .sec{display:flex;align-items:baseline;justify-content:space-between;margin:22px 2px 10px}
+  .sec h2{font-size:.95rem;color:var(--navy);font-weight:700;margin:0}
+  .sec .note{font-family:"DM Mono",monospace;font-size:.66rem;color:var(--muted);letter-spacing:.03em}
   .days{display:flex;flex-direction:column;gap:8px}
-  .day{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:12px 16px}
-  .day .dname{width:88px;font-weight:600;font-size:.95rem}
-  .day img{width:44px;height:44px}
-  .day .dc{flex:1;font-size:.85rem;color:var(--muted);text-transform:capitalize}
-  .day .dt{font-variant-numeric:tabular-nums;font-weight:600}
-  .day .dt .lo{color:var(--muted);font-weight:400}
+  .day{background:var(--card);border-radius:12px;border:1px solid var(--line);overflow:hidden}
+  .day .row{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer}
+  .day .row:hover{background:#fafbfd}
+  .day .dname{width:96px;font-weight:700;font-size:.93rem}
+  .day img{width:40px;height:40px;flex:none}
+  .day .dc{flex:1;min-width:0;font-size:.82rem;color:var(--muted);text-transform:capitalize;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .day .rainpill{font-family:"DM Mono",monospace;font-size:.74rem;font-weight:500;color:var(--rain);
+    background:var(--rain-soft);border-radius:999px;padding:3px 9px;white-space:nowrap}
+  .day .rainpill.dry{color:var(--muted);background:#f1f3f6}
+  .day .lvl{font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+  .lvl.none{color:var(--muted);background:#f1f3f6}
+  .lvl.light{color:#2f6fb0;background:#eaf2fa}
+  .lvl.mod{color:#1d6fa5;background:#dcecf8}
+  .lvl.heavy{color:var(--warn);background:var(--warn-bg)}
+  .lvl.vheavy{color:var(--danger);background:var(--danger-bg)}
+  .day .dt{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .day .dt .lo{color:var(--muted);font-weight:500}
+  .day .caret{color:var(--muted);font-size:.8rem;transition:transform .18s ease}
+  .day.open .caret{transform:rotate(180deg)}
+  .detail{display:none;border-top:1px dashed var(--line);background:#fbfcfe}
+  .day.open .detail{display:block}
+  .hrow{display:grid;grid-template-columns:58px 40px 1fr 64px 58px;align-items:center;gap:8px;
+    padding:8px 16px;font-size:.8rem;border-bottom:1px solid #eef1f6}
+  .hrow:last-child{border-bottom:none}
+  .hrow .h-t{font-family:"DM Mono",monospace;color:var(--navy);font-weight:500}
+  .hrow img{width:32px;height:32px}
+  .hrow .h-d{color:var(--muted);text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hrow .h-r{text-align:right;font-family:"DM Mono",monospace;color:var(--rain)}
+  .hrow .h-r.z{color:#c2c9d3}
+  .hrow .h-p{text-align:right;font-family:"DM Mono",monospace;color:var(--muted)}
+  .hrow.wet{background:var(--rain-soft)}
 
-  footer{margin-top:28px;text-align:center;font-size:.75rem;color:var(--muted)}
+  footer{margin-top:28px;border-top:1px solid var(--line);padding-top:16px;text-align:center}
+  footer .fb{font-family:"DM Mono",monospace;font-size:.72rem;letter-spacing:.18em;color:var(--navy);font-weight:500}
+  footer .by{font-size:.74rem;color:var(--muted);margin-top:4px}
   footer a{color:var(--rain)}
   .hidden{display:none!important}
 
-  .modal{position:fixed;inset:0;background:rgba(18,36,60,.45);display:grid;place-items:center;padding:20px;z-index:10}
-  .modal .box{position:relative;background:#fff;border-radius:18px;padding:24px;max-width:420px;width:100%;box-shadow:var(--shadow)}
+  /* ===== modal ===== */
+  .modal{position:fixed;inset:0;background:rgba(13,27,46,.5);display:grid;place-items:center;padding:20px;z-index:20}
+  .modal .box{position:relative;background:#fff;border-radius:16px;padding:24px;max-width:430px;width:100%;box-shadow:var(--shadow)}
   .modal .x{position:absolute;top:12px;right:14px;border:none;background:none;font-size:1.5rem;line-height:1;
     color:var(--muted);cursor:pointer;padding:4px;border-radius:8px}
   .modal .x:hover{background:#eef2f7;color:var(--ink)}
   .modal h3{margin:0 0 6px;font-size:1.1rem;padding-right:28px}
-  .modal p{margin:0 0 14px;font-size:.88rem;color:var(--muted)}
-  .modal input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;
-    font-family:inherit;font-size:.95rem;margin-bottom:12px}
-  .modal .row{display:flex;gap:8px}
-  .modal .row button{flex:1;border:none;border-radius:12px;padding:12px;font-family:inherit;
-    font-size:.95rem;font-weight:500;cursor:pointer}
-  .modal .save{background:var(--ink);color:#fff}
+  .modal p{margin:0 0 14px;font-size:.86rem;color:var(--muted)}
+  .modal input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;
+    font-family:"DM Mono",monospace;font-size:.9rem;margin-bottom:12px}
+  .modal .row2{display:flex;gap:8px}
+  .modal .row2 button{flex:1;border:none;border-radius:10px;padding:12px;font-family:inherit;
+    font-size:.95rem;font-weight:600;cursor:pointer}
+  .modal .save{background:var(--navy);color:#fff}
   .modal .cancel{background:#eef2f7;color:var(--ink)}
   .modal a{color:var(--rain)}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="brand">พยากรณ์อากาศ<small>ขับเคลื่อนด้วย OpenWeather</small></div>
-    <button class="keybtn" id="keyBtn">API Key</button>
-  </header>
+<!-- ===== MASTHEAD ===== -->
+<header class="masthead">
+  <div class="inner">
+    <!-- โลโก้ KST (ตราล้อเรือ) — สลับเป็นโลโก้จริงได้โดยแทน <svg> ด้วย
+         <img class="emblem" src="data:image/jpeg;base64,{วางค่า base64 จาก kst_logo_b64.txt}"> -->
+    <svg class="emblem" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="KST">
+      <circle cx="32" cy="32" r="12" stroke="#C8982A" stroke-width="2.5"/>
+      <circle cx="32" cy="32" r="4.5" fill="#C8982A"/>
+      <g stroke="#C8982A" stroke-width="2.5" stroke-linecap="round">
+        <line x1="32" y1="20" x2="32" y2="7"/><line x1="32" y1="44" x2="32" y2="57"/>
+        <line x1="20" y1="32" x2="7" y2="32"/><line x1="44" y1="32" x2="57" y2="32"/>
+        <line x1="23.5" y1="23.5" x2="14" y2="14"/><line x1="40.5" y1="40.5" x2="50" y2="50"/>
+        <line x1="40.5" y1="23.5" x2="50" y2="14"/><line x1="23.5" y1="40.5" x2="14" y2="50"/>
+      </g>
+      <g fill="#C8982A">
+        <circle cx="32" cy="5.5" r="3"/><circle cx="32" cy="58.5" r="3"/>
+        <circle cx="5.5" cy="32" r="3"/><circle cx="58.5" cy="32" r="3"/>
+        <circle cx="12.5" cy="12.5" r="3"/><circle cx="51.5" cy="51.5" r="3"/>
+        <circle cx="51.5" cy="12.5" r="3"/><circle cx="12.5" cy="51.5" r="3"/>
+      </g>
+    </svg>
+    <div class="titles">
+      <h1>พยากรณ์อากาศ</h1>
+      <div class="sub">INTERNAL FORECAST · KST–HATYAI</div>
+      <div class="byline">FORECAST BY TORSAK</div>
+    </div>
+    <button class="keybtn" id="keyBtn">API KEY</button>
+  </div>
+</header>
+<div class="telemetry">
+  <div class="inner">
+    <span>STATION <b id="tStation">KST-HATYAI</b></span>
+    <span id="tCoord">LAT — · LON —</span>
+    <span id="tUpd">UPDATED —</span>
+    <span>ความแม่นยำเน้นจุด: <b>จ.สงขลาและพื้นที่ใกล้เคียง</b></span>
+  </div>
+</div>
 
+<div class="wrap">
   <div class="search">
-    <input id="q" type="text" placeholder="ค้นหาเมือง เช่น หาดใหญ่, Bangkok, Tokyo" autocomplete="off">
+    <input id="q" type="text" placeholder="ค้นหาพื้นที่ เช่น หาดใหญ่, สงขลา, สทิงพระ, จะนะ" autocomplete="off">
     <button class="geo" id="geoBtn" title="ใช้ตำแหน่งปัจจุบัน">◎</button>
     <button id="goBtn">ค้นหา</button>
   </div>
 
-  <div id="status" class="status">พิมพ์ชื่อเมืองแล้วกดค้นหา เพื่อดูสภาพอากาศ</div>
+  <div id="status" class="status">พิมพ์ชื่อพื้นที่แล้วกดค้นหา เพื่อดูสภาพอากาศและพยากรณ์ฝน</div>
 
+  <div id="alertWrap"></div>
   <section id="now" class="now hidden"></section>
+
   <div id="fcWrap" class="hidden">
-    <h2>พยากรณ์ 5 วันข้างหน้า</h2>
+    <div class="sec">
+      <h2>พยากรณ์ 5 วันข้างหน้า</h2>
+      <span class="note">แตะแต่ละวันเพื่อดูช่วงเวลาฝนตกรายชั่วโมง</span>
+    </div>
     <div id="days" class="days"></div>
   </div>
 
-  <footer>ข้อมูลจาก OpenWeather · อัปเดตทุก ~3 ชั่วโมง · <a href="https://openweathermap.org/api" target="_blank" rel="noopener">เอกสาร API</a></footer>
+  <footer>
+    <div class="fb">FORECAST BY TORSAK</div>
+    <div class="by">Torsak Arunpan · AI Strategist &amp; ฝ่ายจัดซื้อวัตถุดิบ · KST</div>
+    <div class="by">ข้อมูลจาก OpenWeather · พยากรณ์ทีละ 3 ชม. · <a href="https://openweathermap.org/api" target="_blank" rel="noopener">API</a></div>
+  </footer>
 </div>
 
+<!-- ===== KEY MODAL ===== -->
 <div id="modal" class="modal hidden">
   <div class="box">
     <button class="x" id="keyClose" title="ปิด" aria-label="ปิด">&times;</button>
@@ -125,7 +236,7 @@
     <p>คีย์จะถูกเก็บไว้ในเบราว์เซอร์ของคุณเท่านั้น (localStorage) ไม่ได้ส่งไปที่อื่น ขอคีย์ฟรีได้ที่
       <a href="https://home.openweathermap.org/api_keys" target="_blank" rel="noopener">home.openweathermap.org</a></p>
     <input id="keyInput" type="text" placeholder="วางคีย์ที่นี่" spellcheck="false">
-    <div class="row">
+    <div class="row2">
       <button class="cancel" id="keyCancel">ยกเลิก</button>
       <button class="save" id="keySave">บันทึก</button>
     </div>
@@ -134,31 +245,21 @@
 
 <script>
 const BASE="https://api.openweathermap.org";
-const els={
-  q:document.getElementById("q"), go:document.getElementById("goBtn"), geo:document.getElementById("geoBtn"),
-  status:document.getElementById("status"), now:document.getElementById("now"),
-  fcWrap:document.getElementById("fcWrap"), days:document.getElementById("days"),
-  modal:document.getElementById("modal"), keyInput:document.getElementById("keyInput"),
-  keyBtn:document.getElementById("keyBtn"), keySave:document.getElementById("keySave"),
-  keyCancel:document.getElementById("keyCancel"), keyClose:document.getElementById("keyClose"),
-};
+const FLOOD_MM=100; // เกณฑ์เตือนน้ำท่วม (มม./วัน)
+const $=id=>document.getElementById(id);
+const els={q:$("q"),go:$("goBtn"),geo:$("geoBtn"),status:$("status"),alertWrap:$("alertWrap"),
+  now:$("now"),fcWrap:$("fcWrap"),days:$("days"),tStation:$("tStation"),tCoord:$("tCoord"),tUpd:$("tUpd"),
+  modal:$("modal"),keyInput:$("keyInput"),keyBtn:$("keyBtn"),keySave:$("keySave"),keyCancel:$("keyCancel"),keyClose:$("keyClose")};
+
 const getKey=()=>{try{return localStorage.getItem("owm_api_key")||"";}catch(e){return "";}};
 const setKey=k=>{try{localStorage.setItem("owm_api_key",k);}catch(e){}};
 const lastCity=()=>{try{return localStorage.getItem("owm_last_city")||"";}catch(e){return "";}};
 const saveCity=c=>{try{localStorage.setItem("owm_last_city",c);}catch(e){}};
 
-function showStatus(msg,isErr){
-  els.status.textContent=msg;
-  els.status.className="status"+(isErr?" err":"");
-  els.status.classList.remove("hidden");
-}
+function showStatus(msg,isErr){els.status.textContent=msg;els.status.className="status"+(isErr?" err":"");els.status.classList.remove("hidden");}
 function openModal(){els.keyInput.value=getKey();els.modal.classList.remove("hidden");els.keyInput.focus();}
-function closeModal(){
-  els.modal.classList.add("hidden");
-  // ถ้ายังไม่มีคีย์และยังไม่มีข้อมูลแสดง ให้บอกทางผู้ใช้
-  if(!getKey() && els.now.classList.contains("hidden"))
-    showStatus("ยังไม่ได้ใส่ API Key — กดปุ่ม “API Key” มุมขวาบนเพื่อใส่คีย์");
-}
+function closeModal(){els.modal.classList.add("hidden");
+  if(!getKey()&&els.now.classList.contains("hidden")) showStatus("ยังไม่ได้ใส่ API Key — กดปุ่ม “API KEY” มุมขวาบนเพื่อใส่คีย์");}
 
 async function api(path){
   const key=getKey();
@@ -173,82 +274,149 @@ async function api(path){
 }
 
 async function loadByCity(city){
-  if(!city.trim()) return;
+  if(!city.trim())return;
   showStatus("กำลังค้นหา “"+city+"” ...");
   try{
     const geo=await api(`/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1`);
-    if(!geo.length) return showStatus("ไม่พบเมือง “"+city+"” ลองพิมพ์เป็นภาษาอังกฤษ",true);
+    if(!geo.length) return showStatus("ไม่พบพื้นที่ “"+city+"” ลองพิมพ์เป็นภาษาอังกฤษ",true);
     saveCity(city);
     await render(geo[0].lat,geo[0].lon);
-  }catch(e){ if(e.message!=="no-key") showStatus(e.message,true); }
+  }catch(e){if(e.message!=="no-key")showStatus(e.message,true);}
 }
-
-async function loadByCoords(lat,lon){
-  showStatus("กำลังโหลดสภาพอากาศ ...");
-  try{ await render(lat,lon); }
-  catch(e){ if(e.message!=="no-key") showStatus(e.message,true); }
-}
+async function loadByCoords(lat,lon){showStatus("กำลังโหลดสภาพอากาศ ...");try{await render(lat,lon);}catch(e){if(e.message!=="no-key")showStatus(e.message,true);}}
 
 async function render(lat,lon){
   const [cur,fc]=await Promise.all([
     api(`/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=th`),
     api(`/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=th`)
   ]);
-  renderNow(cur); renderForecast(fc);
+  els.tCoord.textContent=`LAT ${(+lat).toFixed(2)} · LON ${(+lon).toFixed(2)}`;
+  els.tUpd.textContent="UPDATED "+new Date().toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"});
+  renderNow(cur);
+  const days=renderForecast(fc);
+  renderAlert(days);
   els.status.classList.add("hidden");
 }
 
-function icon(code){return `https://openweathermap.org/img/wn/${code}@2x.png`;}
+const icon=c=>`https://openweathermap.org/img/wn/${c}@2x.png`;
+// หมวดความแรงฝนตามเกณฑ์กรมอุตุฯ (มม./วัน)
+function rainLevel(mm){
+  if(mm<0.1) return {label:"ไม่มีฝน",cls:"none"};
+  if(mm<=10) return {label:"ฝนเล็กน้อย",cls:"light"};
+  if(mm<=35) return {label:"ฝนปานกลาง",cls:"mod"};
+  if(mm<=90) return {label:"ฝนหนัก",cls:"heavy"};
+  return {label:"ฝนหนักมาก",cls:"vheavy"};
+}
 
 function renderNow(d){
-  const t=Math.round(d.main.temp), feels=Math.round(d.main.feels_like);
-  const w=d.weather[0], place=`${d.name}${d.sys&&d.sys.country?", "+d.sys.country:""}`;
+  const t=Math.round(d.main.temp),feels=Math.round(d.main.feels_like),w=d.weather[0];
+  const place=`${d.name}${d.sys&&d.sys.country?", "+d.sys.country:""}`;
   const now=new Date().toLocaleString("th-TH",{weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
+  const rmm=d.rain?(d.rain["1h"]??d.rain["3h"]??0):0;
+  const rainText=rmm>0?`ฝนกำลังตก ~${rmm.toFixed(1)} มม.`:"ขณะนี้ไม่มีฝน";
   els.now.innerHTML=`
-    <div class="place">${place}</div>
-    <div class="when">${now} น.</div>
+    <div class="head">
+      <div class="place">${place}</div>
+      <div class="when">${now} น.</div>
+    </div>
     <div class="top">
-      <div>
-        <div class="temp">${t}<span>°C</span></div>
+      <div class="temp tnum">${t}<span>°C</span></div>
+      <div class="cond">
         <div class="desc">${w.description}</div>
         <div class="feels">รู้สึกเหมือน ${feels}°C</div>
       </div>
-      <img src="${icon(w.icon)}" alt="${w.description}">
+      <img class="wx" src="${icon(w.icon)}" alt="${w.description}">
+    </div>
+    <div class="rainbar">
+      <div><div class="lbl">ปริมาณฝน (ปัจจุบัน)</div><div class="big tnum">${rmm.toFixed(1)}<span style="font-size:.9rem"> มม.</span></div></div>
+      <div class="txt">${rainText}</div>
     </div>
     <div class="grid">
-      <div class="cell"><b>ความชื้น</b><span>${d.main.humidity}%</span></div>
-      <div class="cell"><b>ลม</b><span>${d.wind.speed.toFixed(1)} m/s</span></div>
-      <div class="cell"><b>ความกดอากาศ</b><span>${d.main.pressure} hPa</span></div>
-      <div class="cell"><b>ทัศนวิสัย</b><span>${d.visibility?(d.visibility/1000).toFixed(1)+" km":"-"}</span></div>
-      <div class="cell"><b>เมฆปกคลุม</b><span>${d.clouds?d.clouds.all+"%":"-"}</span></div>
-      <div class="cell"><b>สูงสุด / ต่ำสุด</b><span>${Math.round(d.main.temp_max)}° / ${Math.round(d.main.temp_min)}°</span></div>
+      <div class="cell"><b>ความชื้น</b><span class="tnum">${d.main.humidity}%</span></div>
+      <div class="cell"><b>ลม</b><span class="tnum">${d.wind.speed.toFixed(1)} m/s</span></div>
+      <div class="cell"><b>ความกดอากาศ</b><span class="tnum">${d.main.pressure}</span></div>
+      <div class="cell"><b>ทัศนวิสัย</b><span class="tnum">${d.visibility?(d.visibility/1000).toFixed(1)+" km":"-"}</span></div>
+      <div class="cell"><b>เมฆปกคลุม</b><span class="tnum">${d.clouds?d.clouds.all+"%":"-"}</span></div>
+      <div class="cell"><b>สูงสุด / ต่ำสุด</b><span class="tnum">${Math.round(d.main.temp_max)}° / ${Math.round(d.main.temp_min)}°</span></div>
     </div>`;
   els.now.classList.remove("hidden");
 }
 
 function renderForecast(fc){
   const byDay={};
-  fc.list.forEach(it=>{
-    const day=it.dt_txt.slice(0,10);
-    (byDay[day]=byDay[day]||[]).push(it);
-  });
+  fc.list.forEach(it=>{(byDay[it.dt_txt.slice(0,10)]=byDay[it.dt_txt.slice(0,10)]||[]).push(it);});
   const today=new Date().toISOString().slice(0,10);
-  const rows=Object.keys(byDay).filter(d=>d>today).slice(0,5).map(day=>{
+  const dayKeys=Object.keys(byDay).filter(d=>d>today).slice(0,5);
+  const summary=[];
+  const html=dayKeys.map(day=>{
     const items=byDay[day];
-    let min=Infinity,max=-Infinity;
-    items.forEach(i=>{min=Math.min(min,i.main.temp_min);max=Math.max(max,i.main.temp_max);});
+    let min=Infinity,max=-Infinity,totRain=0,maxPop=0,maxIntensity=0;
+    items.forEach(i=>{
+      min=Math.min(min,i.main.temp_min);max=Math.max(max,i.main.temp_max);
+      const r=i.rain?(i.rain["3h"]||0):0; totRain+=r; maxIntensity=Math.max(maxIntensity,r);
+      maxPop=Math.max(maxPop,i.pop||0);
+    });
+    const lv=rainLevel(totRain);
+    summary.push({day,totRain,maxPop,name:new Date(day+"T00:00:00").toLocaleDateString("th-TH",{weekday:"long",day:"numeric",month:"long"})});
     const noon=items.find(i=>i.dt_txt.slice(11,13)==="12")||items[Math.floor(items.length/2)];
     const w=noon.weather[0];
-    const name=new Date(day+"T00:00:00").toLocaleDateString("th-TH",{weekday:"short",day:"numeric",month:"short"});
+    const dname=new Date(day+"T00:00:00").toLocaleDateString("th-TH",{weekday:"short",day:"numeric",month:"short"});
+    const pill=totRain>0
+      ?`<span class="rainpill tnum">☔ ${totRain.toFixed(1)} มม. · ${Math.round(maxPop*100)}%</span>`
+      :`<span class="rainpill dry tnum">ไม่มีฝน · ${Math.round(maxPop*100)}%</span>`;
+    const hours=items.map(i=>{
+      const hr=i.dt_txt.slice(11,16);
+      const r=i.rain?(i.rain["3h"]||0):0;
+      const iw=i.weather[0];
+      return `<div class="hrow${r>0?' wet':''}">
+        <span class="h-t">${hr}</span>
+        <img src="${icon(iw.icon)}" alt="">
+        <span class="h-d">${iw.description}</span>
+        <span class="h-r${r>0?'':' z'} tnum">${r>0?r.toFixed(1)+' มม.':'—'}</span>
+        <span class="h-p tnum">${Math.round((i.pop||0)*100)}%</span>
+      </div>`;
+    }).join("");
     return `<div class="day">
-      <div class="dname">${name}</div>
-      <img src="${icon(w.icon)}" alt="${w.description}">
-      <div class="dc">${w.description}</div>
-      <div class="dt">${Math.round(max)}° <span class="lo">/ ${Math.round(min)}°</span></div>
+      <div class="row" onclick="this.parentNode.classList.toggle('open')">
+        <div class="dname">${dname}</div>
+        <img src="${icon(w.icon)}" alt="${w.description}">
+        <div class="dc">${w.description}</div>
+        ${pill}
+        <span class="lvl ${lv.cls}">${lv.label}</span>
+        <div class="dt tnum">${Math.round(max)}° <span class="lo">/ ${Math.round(min)}°</span></div>
+        <span class="caret">▾</span>
+      </div>
+      <div class="detail">${hours}</div>
     </div>`;
   }).join("");
-  els.days.innerHTML=rows;
+  els.days.innerHTML=html;
   els.fcWrap.classList.remove("hidden");
+  return summary;
+}
+
+function renderAlert(days){
+  const floods=days.filter(d=>d.totRain>=FLOOD_MM);
+  const heavy=days.filter(d=>d.totRain>=35&&d.totRain<FLOOD_MM);
+  let html="";
+  if(floods.length){
+    html+=`<div class="alert flood">
+      <div class="ic">⚠️</div>
+      <div>
+        <h3>เตือนภัยฝนตกหนักมาก / เสี่ยงน้ำท่วม</h3>
+        <p>คาดการณ์ปริมาณฝนสะสมตั้งแต่ ${FLOOD_MM} มม./วันขึ้นไป ในพื้นที่ จ.สงขลาและใกล้เคียง โปรดเตรียมรับมือและวางแผนการรับ-ส่งวัตถุดิบล่วงหน้า</p>
+        <ul>${floods.map(d=>`<li>${d.name} — ฝนสะสม ~${d.totRain.toFixed(0)} มม. (โอกาสตก ${Math.round(d.maxPop*100)}%)</li>`).join("")}</ul>
+      </div></div>`;
+  }
+  if(heavy.length){
+    html+=`<div class="alert caution">
+      <div class="ic">🌧️</div>
+      <div>
+        <h3>เฝ้าระวังฝนหนัก</h3>
+        <p>มีวันที่ฝนสะสมระดับ 35–${FLOOD_MM} มม. ควรเผื่อเวลาการขนส่งและงานกลางแจ้ง</p>
+        <ul>${heavy.map(d=>`<li>${d.name} — ฝนสะสม ~${d.totRain.toFixed(0)} มม.</li>`).join("")}</ul>
+      </div></div>`;
+  }
+  els.alertWrap.innerHTML=html;
 }
 
 // events
@@ -258,32 +426,17 @@ els.keyBtn.addEventListener("click",openModal);
 els.keyCancel.addEventListener("click",closeModal);
 els.keyClose.addEventListener("click",closeModal);
 els.keyInput.addEventListener("keydown",e=>{if(e.key==="Enter")els.keySave.click();});
-// ปิดเมื่อคลิกพื้นที่มืดนอกกล่อง
 els.modal.addEventListener("click",e=>{if(e.target===els.modal)closeModal();});
-// ปิดด้วยปุ่ม Esc
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!els.modal.classList.contains("hidden"))closeModal();});
-els.keySave.addEventListener("click",()=>{
-  const k=els.keyInput.value.trim();
-  if(!k) return;
-  setKey(k); closeModal();
-  loadByCity(els.q.value||lastCity()||"หาดใหญ่");
-});
+els.keySave.addEventListener("click",()=>{const k=els.keyInput.value.trim();if(!k)return;setKey(k);closeModal();loadByCity(els.q.value||lastCity()||"หาดใหญ่");});
 els.geo.addEventListener("click",()=>{
-  if(!navigator.geolocation) return showStatus("เบราว์เซอร์ไม่รองรับการหาตำแหน่ง",true);
+  if(!navigator.geolocation)return showStatus("เบราว์เซอร์ไม่รองรับการหาตำแหน่ง",true);
   showStatus("กำลังขอตำแหน่ง ...");
-  navigator.geolocation.getCurrentPosition(
-    p=>loadByCoords(p.coords.latitude,p.coords.longitude),
-    ()=>showStatus("ไม่สามารถเข้าถึงตำแหน่งได้ ลองพิมพ์ชื่อเมืองแทน",true)
-  );
+  navigator.geolocation.getCurrentPosition(p=>loadByCoords(p.coords.latitude,p.coords.longitude),()=>showStatus("ไม่สามารถเข้าถึงตำแหน่งได้ ลองพิมพ์ชื่อพื้นที่แทน",true));
 });
 
-// init — ถ้ามีคีย์แล้วโหลดเลย ไม่เด้ง modal
-(function(){
-  const c=lastCity()||"หาดใหญ่";
-  els.q.value=c;
-  if(getKey()) loadByCity(c);
-  else openModal();
-})();
+// init
+(function(){const c=lastCity()||"หาดใหญ่";els.q.value=c;if(getKey())loadByCity(c);else openModal();})();
 </script>
 </body>
 </html>
