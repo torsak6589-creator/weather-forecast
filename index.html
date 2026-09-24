@@ -167,7 +167,7 @@
 
   <div id="fcWrap" class="hidden">
     <div class="sec">
-      <h2>พยากรณ์ 5 วันข้างหน้า</h2>
+      <h2>พยากรณ์วันนี้ &amp; 5 วันข้างหน้า</h2>
     </div>
     <div class="taphint">
       <span class="tapic">👆</span>
@@ -210,7 +210,12 @@ const saveCity=c=>{try{localStorage.setItem("owm_last_city",c);}catch(e){}};
 
 function showStatus(m,e){els.status.textContent=m;els.status.className="status"+(e?" err":"");els.status.classList.remove("hidden");}
 function openModal(){els.keyInput.value=getKey();els.modal.classList.remove("hidden");els.keyInput.focus();}
-function closeModal(){els.modal.classList.add("hidden");if(!getKey()&&els.now.classList.contains("hidden"))showStatus("ยังไม่ได้ใส่ API Key — กดปุ่ม “API KEY” มุมขวาบนเพื่อใส่คีย์");}
+function closeModal(){els.modal.classList.add("hidden");
+  if(!getKey()&&els.now.classList.contains("hidden")){
+    els.status.className="status";els.status.classList.remove("hidden");
+    els.status.innerHTML='ยังไม่ได้ใส่ API Key — <a href="#" id="reopenKey" style="color:var(--rain);font-weight:600">คลิกที่นี่เพื่อใส่คีย์</a>';
+    var r=document.getElementById("reopenKey"); if(r) r.onclick=function(ev){ev.preventDefault();openModal();};
+  }}
 
 async function api(path){
   const key=getKey(); if(!key){openModal();throw new Error("no-key");}
@@ -302,7 +307,7 @@ function chartSVG(items){
 function renderForecast(fc){
   const byDay={}; fc.list.forEach(it=>{(byDay[it.dt_txt.slice(0,10)]=byDay[it.dt_txt.slice(0,10)]||[]).push(it);});
   const today=new Date().toISOString().slice(0,10);
-  const keys=Object.keys(byDay).filter(d=>d>today).slice(0,5);
+  const keys=Object.keys(byDay).filter(d=>d>=today).slice(0,6);
   const summary=[];
   els.days.innerHTML=keys.map(day=>{
     const items=byDay[day];
@@ -310,22 +315,23 @@ function renderForecast(fc){
     items.forEach(i=>{min=Math.min(min,i.main.temp_min);max=Math.max(max,i.main.temp_max);
       tot+=i.rain?(i.rain["3h"]||0):0; maxPop=Math.max(maxPop,i.pop||0);});
     const lv=rainLevel(tot);
-    const fullName=new Date(day+"T00:00:00").toLocaleDateString("th-TH",{weekday:"long",day:"numeric",month:"long"});
+    const isToday=day===today;
+    const fullName=isToday?"วันนี้":new Date(day+"T00:00:00").toLocaleDateString("th-TH",{weekday:"long",day:"numeric",month:"long"});
     summary.push({day,tot,maxPop,name:fullName});
     const noon=items.find(i=>i.dt_txt.slice(11,13)==="12")||items[Math.floor(items.length/2)], w=noon.weather[0];
-    const dname=new Date(day+"T00:00:00").toLocaleDateString("th-TH",{weekday:"short",day:"numeric",month:"short"});
+    const dname=isToday?"วันนี้":new Date(day+"T00:00:00").toLocaleDateString("th-TH",{weekday:"short",day:"numeric",month:"short"});
     const pill=tot>0?`<span class="rainpill tnum">☔ ${tot.toFixed(1)} มม. · ${Math.round(maxPop*100)}%</span>`
       :`<span class="rainpill dry tnum">ไม่มีฝน · ${Math.round(maxPop*100)}%</span>`;
     const wet=items.filter(i=>(i.rain?(i.rain["3h"]||0):0)>0);
     const win=wet.length?`<div class="rainwin">🌧️ คาดว่าฝนตกช่วง ${wet[0].dt_txt.slice(11,16)}–${wet[wet.length-1].dt_txt.slice(11,16)} น. · ฝนรวม ${tot.toFixed(1)} มม.</div>`
-      :`<div class="rainwin dry">☀️ คาดว่าไม่มีฝนตลอดวัน</div>`;
+      :`<div class="rainwin dry">☀️ คาดว่าไม่มีฝน${isToday?"ในช่วงที่เหลือของวันนี้":"ตลอดวัน"}</div>`;
     const stats=`<div class="stats">
       <div class="s"><b>ฝนรวม</b><span class="tnum">${tot.toFixed(1)} มม.</span></div>
       <div class="s"><b>โอกาสฝน</b><span class="tnum">${Math.round(maxPop*100)}%</span></div>
       <div class="s"><b>ลม (เที่ยง)</b><span class="tnum">${noon.wind.speed.toFixed(1)} m/s</span></div>
       <div class="s"><b>ความกดอากาศ</b><span class="tnum">${noon.main.pressure}</span></div>
       <div class="s"><b>ความชื้น</b><span class="tnum">${noon.main.humidity}%</span></div></div>`;
-    return `<div class="day"><div class="row" onclick="this.parentNode.classList.toggle('open')">
+    return `<div class="day${isToday?' open':''}"><div class="row" onclick="this.parentNode.classList.toggle('open')">
         <div class="dname">${dname}</div><img src="${icon(w.icon)}" alt=""><div class="dc">${w.description}</div>
         ${pill}<span class="lvl ${lv.cls}">${lv.label}</span>
         <div class="dt tnum">${Math.round(max)}° <span class="lo">/ ${Math.round(min)}°</span></div><span class="caret">▾</span></div>
@@ -352,14 +358,15 @@ function renderAlert(days){
 
 els.go.addEventListener("click",()=>loadByCity(els.q.value));
 els.q.addEventListener("keydown",e=>{if(e.key==="Enter")loadByCity(els.q.value);});
+els.geo.addEventListener("click",()=>{if(!navigator.geolocation)return showStatus("เบราว์เซอร์ไม่รองรับการหาตำแหน่ง",true);
+  showStatus("กำลังขอตำแหน่ง ...");navigator.geolocation.getCurrentPosition(p=>loadByCoords(p.coords.latitude,p.coords.longitude),()=>showStatus("ไม่สามารถเข้าถึงตำแหน่งได้ ลองพิมพ์ชื่อพื้นที่แทน",true));});
+
 els.keyCancel.addEventListener("click",closeModal);
 els.keyClose.addEventListener("click",closeModal);
 els.keyInput.addEventListener("keydown",e=>{if(e.key==="Enter")els.keySave.click();});
 els.modal.addEventListener("click",e=>{if(e.target===els.modal)closeModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!els.modal.classList.contains("hidden"))closeModal();});
 els.keySave.addEventListener("click",()=>{const k=els.keyInput.value.trim();if(!k)return;setKey(k);closeModal();loadByCity(els.q.value||lastCity()||"หาดใหญ่");});
-els.geo.addEventListener("click",()=>{if(!navigator.geolocation)return showStatus("เบราว์เซอร์ไม่รองรับการหาตำแหน่ง",true);
-  showStatus("กำลังขอตำแหน่ง ...");navigator.geolocation.getCurrentPosition(p=>loadByCoords(p.coords.latitude,p.coords.longitude),()=>showStatus("ไม่สามารถเข้าถึงตำแหน่งได้ ลองพิมพ์ชื่อพื้นที่แทน",true));});
 
 (function(){const c=lastCity()||"หาดใหญ่";els.q.value=c;if(getKey())loadByCity(c);else openModal();})();
 </script>
