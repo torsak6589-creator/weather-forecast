@@ -6,6 +6,7 @@
 <title>พยากรณ์อากาศ · INTERNAL FORECAST · KST–HATYAI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -105,6 +106,23 @@
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:10px}
   .stats .s{background:#fff;padding:8px 10px} .stats .s b{display:block;font-size:.62rem;color:var(--muted);font-weight:600} .stats .s span{font-size:.9rem;font-weight:700}
 
+  .radar{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
+  .radar .rhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 18px 10px}
+  .radar .rhead h2{margin:0;font-size:.95rem;font-weight:700;color:var(--navy)}
+  .radar .rtime{font-family:"DM Mono",monospace;font-size:.72rem;color:var(--muted)}
+  .radar .rtime b{color:var(--rain);font-weight:500}
+  #radarMap{height:340px;width:100%;background:#dfe7f0;z-index:0}
+  @media(max-width:440px){#radarMap{height:280px}}
+  .rctl{display:flex;align-items:center;gap:10px;padding:10px 18px;border-top:1px solid var(--line)}
+  .rctl button{flex:none;border:none;border-radius:8px;width:36px;height:32px;background:var(--navy);color:#fff;font-size:.9rem;cursor:pointer}
+  .rctl button:hover{background:var(--navy-3)}
+  .rctl input[type=range]{flex:1;min-width:0;accent-color:var(--gold)}
+  .rleg{display:flex;align-items:center;gap:8px;padding:0 18px 12px;font-size:.68rem;color:var(--muted);flex-wrap:wrap}
+  .rleg .scale{flex:1;min-width:140px;height:8px;border-radius:4px;background:linear-gradient(90deg,#88ddee,#0099cc,#0077aa,#ffee00,#ffaa00,#ff4400,#c10000,#ffaaff)}
+  .rnote{padding:0 18px 14px;font-size:.72rem;color:var(--muted)}
+  .rnote.err{color:var(--danger)}
+  .leaflet-container{font-family:"Noto Sans Thai",system-ui,sans-serif}
+
   footer{margin-top:28px;border-top:1px solid var(--line);padding-top:16px;text-align:center}
   footer .fb{font-family:"DM Mono",monospace;font-size:.72rem;letter-spacing:.18em;color:var(--navy);font-weight:500}
   footer .by{font-size:.74rem;color:var(--muted);margin-top:4px} footer a{color:var(--rain)}
@@ -143,6 +161,17 @@
   <div id="alertWrap"></div>
   <section id="now" class="now hidden"></section>
 
+  <section id="radarWrap" class="radar hidden">
+    <div class="rhead"><h2>📡 แผนที่เรดาร์ฝน</h2><div class="rtime" id="radarTime">กำลังโหลดภาพเรดาร์ ...</div></div>
+    <div id="radarMap"></div>
+    <div class="rctl">
+      <button id="radarPlay" title="เล่น / หยุด">▶</button>
+      <input id="radarSlider" type="range" min="0" max="0" value="0" aria-label="เลือกเวลาภาพเรดาร์">
+    </div>
+    <div class="rleg"><span>ฝนเบา</span><span class="scale"></span><span>ฝนหนัก / พายุ</span></div>
+    <div class="rnote" id="radarNote">ภาพเรดาร์ย้อนหลังประมาณ 2 ชม. อัปเดตทุก 10 นาที · 📍 คือตำแหน่งที่เลือก</div>
+  </section>
+
   <div id="fcWrap" class="hidden">
     <div class="sec"><h2>พยากรณ์วันนี้ &amp; 5 วันข้างหน้า</h2></div>
     <div class="taphint">
@@ -157,9 +186,11 @@
     <div class="fb">FORECAST BY TORSAK</div>
     <div class="by">Torsak Arunpan · AI Strategist &amp; ฝ่ายจัดซื้อวัตถุดิบ · KST</div>
     <div class="by">ข้อมูลจาก <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (โมเดล ECMWF และหน่วยพยากรณ์ระดับชาติ)</div>
+    <div class="by">ภาพเรดาร์จาก <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · แผนที่ © OpenStreetMap, CARTO</div>
   </footer>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const GEO="https://geocoding-api.open-meteo.com/v1/search";
 const FC="https://api.open-meteo.com/v1/forecast";
@@ -222,7 +253,61 @@ async function render(lat,lon,label){
   els.tCoord.textContent=`LAT ${(+lat).toFixed(2)} · LON ${(+lon).toFixed(2)}`;
   els.tUpd.textContent="UPDATED "+new Date().toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"});
   renderNow(data,label); renderAlert(renderForecast(data)); els.status.classList.add("hidden");
+  showRadar(lat,lon,label);
 }
+
+// แผนที่เรดาร์ฝน (RainViewer) บน Leaflet
+const RV_API="https://api.rainviewer.com/public/weather-maps.json";
+const radar={map:null,marker:null,frames:[],layers:[],idx:0,timer:null,loadedAt:0};
+const rEl={wrap:$("radarWrap"),time:$("radarTime"),play:$("radarPlay"),slider:$("radarSlider"),note:$("radarNote")};
+function radarNote(m,e){rEl.note.textContent=m;rEl.note.className="rnote"+(e?" err":"");}
+async function showRadar(lat,lon,label){
+  if(typeof L==="undefined"){rEl.wrap.classList.remove("hidden");rEl.time.textContent="—";
+    return radarNote("โหลดแผนที่ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต",true);}
+  rEl.wrap.classList.remove("hidden");
+  if(!radar.map){
+    radar.map=L.map("radarMap",{zoomControl:true,attributionControl:true,scrollWheelZoom:false}).setView([lat,lon],7);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{
+      maxZoom:12,subdomains:"abcd",attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'}).addTo(radar.map);
+    radar.marker=L.marker([lat,lon]).addTo(radar.map);
+  }else{
+    radar.map.invalidateSize(); radar.map.setView([lat,lon],Math.max(radar.map.getZoom(),6)); radar.marker.setLatLng([lat,lon]);
+  }
+  radar.marker.bindTooltip("📍 "+label);
+  // ภาพเรดาร์มีอายุ ~10 นาที ไม่ต้องโหลดใหม่ทุกครั้งที่เปลี่ยนพื้นที่
+  if(Date.now()-radar.loadedAt<5*60*1000&&radar.layers.length)return;
+  try{
+    const r=await fetch(RV_API); if(!r.ok)throw new Error("http");
+    const j=await r.json();
+    const frames=[...((j.radar&&j.radar.past)||[]),...((j.radar&&j.radar.nowcast)||[])];
+    if(!frames.length)throw new Error("empty");
+    stopRadar(); radar.layers.forEach(l=>radar.map.removeLayer(l));
+    radar.frames=frames; radar.idx=0;
+    radar.layers=frames.map(f=>L.tileLayer(`${j.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`,{
+      opacity:0,maxNativeZoom:7,maxZoom:12,zIndex:5,attribution:'<a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>'}).addTo(radar.map));
+    radar.loadedAt=Date.now();
+    rEl.slider.max=frames.length-1;
+    const pastN=((j.radar&&j.radar.past)||[]).length;
+    setRadarFrame(Math.max(0,pastN-1));
+    radarNote("ภาพเรดาร์ย้อนหลังประมาณ 2 ชม. อัปเดตทุก 10 นาที · 📍 คือตำแหน่งที่เลือก · กด ▶ เพื่อดูทิศทางกลุ่มฝน");
+  }catch(e){rEl.time.textContent="—";radarNote("โหลดภาพเรดาร์ไม่สำเร็จ ลองใหม่ภายหลัง",true);}
+}
+function setRadarFrame(i){
+  if(!radar.layers.length)return;
+  radar.layers[radar.idx].setOpacity(0);
+  radar.idx=i; radar.layers[i].setOpacity(0.75); rEl.slider.value=i;
+  const f=radar.frames[i], t=new Date(f.time*1000);
+  const isFc=f.time*1000>Date.now();
+  rEl.time.innerHTML=`${isFc?"คาดการณ์":"ภาพ"} <b>${t.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"})} น.</b> · ${t.toLocaleDateString("th-TH",{day:"numeric",month:"short"})}`;
+}
+function stopRadar(){if(radar.timer){clearInterval(radar.timer);radar.timer=null;}rEl.play.textContent="▶";}
+rEl.play.addEventListener("click",()=>{
+  if(radar.timer)return stopRadar();
+  if(!radar.layers.length)return;
+  rEl.play.textContent="⏸";
+  radar.timer=setInterval(()=>setRadarFrame((radar.idx+1)%radar.layers.length),700);
+});
+rEl.slider.addEventListener("input",()=>{stopRadar();setRadarFrame(+rEl.slider.value);});
 
 function renderNow(data,label){
   const c=data.current, D=data.daily, w=wmo(c.weather_code,c.is_day);
